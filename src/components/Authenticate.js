@@ -91,16 +91,21 @@ const Authenticate = () => {
           result.user.uid
         );
 
-        dispatch(
-          setUser({
-            displayName: result.user.displayName,
-            email: result.user.email,
-            id: result.user.uid,
-            profilePic: result.user.photoURL,
-          })
-        );
+        db.collection("users")
+          .doc(result.user.email)
+          .onSnapshot((doc) => {
+            console.log("User logged in", doc.data());
+            dispatch(
+              setUser({
+                displayName: result.user.displayName,
+                email: result.user.email,
+                id: result.user.uid,
+                profilePic: result.user.photoURL,
+              })
+            );
 
-        history.push("/checkout");
+            history.push("/checkout");
+          });
       })
       .catch((error) => console.log(error.message));
   };
@@ -174,7 +179,6 @@ const Authenticate = () => {
               .signInWithEmailAndPassword(values.email, values.password)
               .then((response) => {
                 console.log("response from signin", response);
-                
 
                 db.collection("users")
                   .doc(response.user.email)

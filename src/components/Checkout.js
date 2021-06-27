@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import {
-    emptyBasket,
-    selectBasket,
+  emptyBasket,
+  selectBasket,
   selectPaidCOrders,
   selectUser,
   setPaidOrders,
@@ -41,40 +41,40 @@ const Checkout = () => {
   const [error, setError] = useState(null);
   const [disabled, setDisabled] = useState(true);
   const [clientSecret, setClientSecret] = useState(true);
-    const [totalInBasket, setTotalInBasket] = useState(0)
-    
-    const user = useSelector(selectUser);
-    const basket = useSelector(selectBasket);
+  const [totalInBasket, setTotalInBasket] = useState(0);
+
+  const user = useSelector(selectUser);
+  const basket = useSelector(selectBasket);
   const dispatch = useDispatch();
   const history = useHistory();
-    
-    const handleSubmit = async (event) => {
-      // do all the fancy stripe stuff...
-      event.preventDefault();
-      setProcessing(true);
 
-      const payload = await stripe
-        .confirmCardPayment(clientSecret, {
-          payment_method: {
-            card: elements.getElement(CardElement),
-          },
-        })
-        .then(({ paymentIntent }) => {
-          // paymentIntent = payment confirmation
+  const handleSubmit = async (event) => {
+    // do all the fancy stripe stuff...
+    event.preventDefault();
+    setProcessing(true);
 
-          db.collection("donaters")
-            .doc(user?.uid)
-            .collection("donations")
-            .doc(paymentIntent.id)
-            .set({
-              email: user.email,
-              amount: paymentIntent.amount,
-              created: paymentIntent.created,
-            });
+    const payload = await stripe
+      .confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: elements.getElement(CardElement),
+        },
+      })
+      .then(({ paymentIntent }) => {
+        // paymentIntent = payment confirmation
 
-          setSucceeded(true);
-          setError(null);
-          setProcessing(false);
+        db.collection("customers")
+          .doc(user?.uid)
+          .collection("orders")
+          .doc(paymentIntent.id)
+          .set({
+            email: user.email,
+            amount: paymentIntent.amount,
+            created: paymentIntent.created,
+          });
+
+        setSucceeded(true);
+        setError(null);
+        setProcessing(false);
 
         //   setDogStyles((previous) => {
         //     return {
@@ -84,21 +84,21 @@ const Checkout = () => {
         //     };
         //   });
 
-          setTimeout(() => {
-            // setDogStyles((previous) => {
-            //   return { ...previous, opacity: 0, top: 0, zIndex: -1 };
-            // });
+        setTimeout(() => {
+          // setDogStyles((previous) => {
+          //   return { ...previous, opacity: 0, top: 0, zIndex: -1 };
+          // });
 
-            setSucceeded(false);
-            setError(null);
-            setProcessing("");
-            setDisabled(true);
-            dispatch(emptyBasket());
-            history.replace("/");
-          }, 1000);
-        });
-    };
-    
+          setSucceeded(false);
+          setError(null);
+          setProcessing("");
+          setDisabled(true);
+          dispatch(emptyBasket());
+          history.replace("/");
+        }, 1000);
+      });
+  };
+
   const handleChange = (event) => {
     // Listen for changes in the CardElement
     // and display any errors as the customer types their card details
@@ -106,43 +106,36 @@ const Checkout = () => {
     setError(event.error ? event.error.message : "");
   };
 
-  
+  useEffect(() => {
+    const getTotalInBasket = () => {
+      console.log("basket >>>", basket);
+      let total = 0;
+      for (let order of basket) {
+        const p = +order?.price?.raw;
+        total += p;
+      }
 
-    useEffect(() => {
-      
-
-        const getTotalInBasket = () => {
-            console.log("basket >>>", basket);
-            let total = 0;
-            for (let order of basket) {
-                const p = +(order?.price?.raw)
-                total += p
-            }
-
-            setTotalInBasket(total);
-}
-getTotalInBasket()
+      setTotalInBasket(total);
+    };
+    getTotalInBasket();
     // generate the special stripe secret which allows us to charge a customer
     const getClientSecret = async () => {
-
       const response = await axios({
         method: "post",
         // Stripe expects the total in a currencies subunits
-          url: `/payments/create?total=${
-            totalInBasket * 100
-        }`,
+        url: `/payments/create?total=${totalInBasket * 100}`,
       });
-        
-        console.log("AXIOS RESPONSE >>>>", response);
+
+      console.log("AXIOS RESPONSE >>>>", response);
       setClientSecret(response.data.clientSecret);
     };
 
-        if (parseInt(totalInBasket) == 0) return;
-        getClientSecret();
+    if (parseInt(totalInBasket) == 0) return;
+    getClientSecret();
   }, [totalInBasket]);
 
   return (
-      <form className={classes.cardPayment} onSubmit={handleSubmit}>
+    <form className={classes.cardPayment} onSubmit={handleSubmit}>
       <>
         <CardElement className={classes.cardElement} onChange={handleChange} />
         <div className={classes.pricecontainer}>
