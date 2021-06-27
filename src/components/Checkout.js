@@ -12,12 +12,14 @@ import { useHistory } from "react-router-dom";
 import axios from "../axios";
 import { db } from "../firebase";
 import CurrencyFormat from "react-currency-format";
-import { makeStyles, Typography } from "@material-ui/core";
+import { makeStyles, Paper, Typography } from "@material-ui/core";
 import { Button } from "@material-ui/core";
 
 const useStyles = makeStyles((theme) => ({
   cardPayment: {
     padding: 10,
+    maxWidth: 500,
+    margin: "3rem auto",
   },
 
   cardElement: {
@@ -29,6 +31,16 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     flexDirection: "column",
     columnGap: 30,
+  },
+
+  buyBtn: {
+    backgroundColor: "#61AF62",
+    color: "white",
+    "&:hover": {
+      backgroundColor: "#61AF62",
+      color: "white",
+      opacity: 0.9,
+    },
   },
 }));
 const Checkout = () => {
@@ -65,30 +77,18 @@ const Checkout = () => {
         db.collection("customers")
           .doc(user?.uid)
           .collection("orders")
-          .doc(paymentIntent.id)
+          .doc(paymentIntent?.id)
           .set({
             email: user.email,
-            amount: paymentIntent.amount,
-            created: paymentIntent.created,
+            amount: paymentIntent?.amount,
+            created: paymentIntent?.created,
           });
 
         setSucceeded(true);
         setError(null);
         setProcessing(false);
 
-        //   setDogStyles((previous) => {
-        //     return {
-        //       ...previous,
-        //       opacity: 1,
-        //       transform: `translate(${0}px, ${-100}px)`,
-        //     };
-        //   });
-
         setTimeout(() => {
-          // setDogStyles((previous) => {
-          //   return { ...previous, opacity: 0, top: 0, zIndex: -1 };
-          // });
-
           setSucceeded(false);
           setError(null);
           setProcessing("");
@@ -96,6 +96,12 @@ const Checkout = () => {
           dispatch(emptyBasket());
           history.replace("/");
         }, 1000);
+      })
+      .catch((error) => {
+        // history.replace("/cart")
+        setProcessing("");
+        setDisabled(true);
+        setError(error.message);
       });
   };
 
@@ -136,7 +142,15 @@ const Checkout = () => {
 
   return (
     <form className={classes.cardPayment} onSubmit={handleSubmit}>
-      <>
+      <Paper
+        style={{
+          height: "auto",
+          padding: 20,
+          display: "grid",
+          alignItems: "center",
+        }}
+        elevation={10}
+      >
         <CardElement className={classes.cardElement} onChange={handleChange} />
         <div className={classes.pricecontainer}>
           <CurrencyFormat
@@ -145,9 +159,9 @@ const Checkout = () => {
                 style={{
                   marginTop: "0.6rem",
                   marginBottom: "0.6rem",
+                  fontWeight: 700,
                 }}
-                variant="body2"
-                component="h5"
+                variant="subtitle2"
               >
                 Your Total: {value}
               </Typography>
@@ -159,17 +173,31 @@ const Checkout = () => {
             prefix={"$"}
           />
           <Button
+            className={classes.buyBtn}
             type="submit"
             fullWidth
-            color="secondary"
-            variant="outlined"
+            variant="contained"
             disabled={processing || disabled || succeeded}
           >
             <span> {processing ? <p> Processing </p> : "Buy Now"}</span>
           </Button>
         </div>
-      </>
-      {/* Errors */} {error && <div> {error} </div>}
+      </Paper>
+      {error && (
+        <div
+          style={{
+            borderRadius: 5,
+            padding: 10,
+            marginTop: 15,
+            backgroundColor: "#F50057",
+            textAlign: "center",
+            color: "white",
+          }}
+        >
+          {" "}
+          Something went wrong{" "}
+        </div>
+      )}
     </form>
   );
 };
